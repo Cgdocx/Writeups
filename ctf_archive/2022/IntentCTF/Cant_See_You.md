@@ -1,0 +1,219 @@
+# Can't See You
+* Category: Misc.
+* 200 Points
+* Solved by the JCTF Team
+
+## Description
+
+> It's too dark in here, can you help Alice find her way out?
+>
+> docker run -it g3rzi/rabbit_hole bash
+
+## Solution
+
+Let's run the attached docker. 
+
+```
+    |\\      //(
+    | \\    //  '
+    '  \\  //  /
+     \  )\((  /
+      )`    `/
+     /   __  \
+    /   (_O)  \
+   /           \________
+_.(_)           )      /
+   (__,        /      /
+    \         /      /
+     \_______/      (
+      \    /         \
+       \  /           \
+        \/             \
+        /               )
+       /               /
+      / _     o__     /
+     ( (_)   //\,\   (
+      \    ``~---~`   )
+\      \             /
+ \      \           /
+  \      \         /
+   \____/ \_______/
+------------------------------------------------
+"...she found herself falling down a very deep well.
+Either the well was very deep, or she fell very slowly,
+for she had plenty of time as she went down to look about her and to wonder what was going to happen next.
+First, she tried to look down and make out what she was coming to, but it was too dark to see anything."
+/home #
+```
+
+Not too much to see here. The docker is running locally so this can't be an escape challenge. Let's inspect the docker container itself:
+
+
+```console
+$ docker history --no-trunc g3rzi/rabbit_hole
+IMAGE                                                                     CREATED        CREATED BY                                                                                                       SIZE      COMMENT
+sha256:[AWS_SECRET_REMOVED]4a10aee4ea9d05220737d119   3 months ago   /bin/sh -c #(nop) WORKDIR /home                                                                                  0B
+<missing>                                                                 3 months ago   /bin/sh -c #(nop)  ENTRYPOINT ["/bin/sh" "-c" "clear; cat /home/message; sh;"]                       0B
+<missing>                                                                 3 months ago   /bin/sh -c rm /tmp/Wonderland                       0B
+<missing>                                                                 3 months ago   /bin/sh -c #(nop) COPY file:[AWS_SECRET_REMOVED]95157295a63e5cd1d357f299 in /home/message    932B
+<missing>                                                                 3 months ago   /bin/sh -c #(nop) COPY dir:[AWS_SECRET_REMOVED]6ca8bd170d16f016f2ea00e2 in /                 11.7MB
+<missing>                                                                 4 months ago   /bin/sh -c #(nop)  CMD ["/bin/sh"]                       0B
+<missing>                                                                 4 months ago   /bin/sh -c #(nop) ADD file:[AWS_SECRET_REMOVED]02755e87e111870d63607725 in /                 5.54MB
+```
+
+We can see that one of the layers removed a file! What are you, `/tmp/Wonderland`?
+
+To find it, we export the docker image to a `tar` file with `docker save --output rabbit_hole.tar g3rzi/rabbit_hole`. Then we untar it:
+
+```console
+┌──(user@kali)-[/media/sf_CTFs/intent/Cant_see_you]
+└─$ tar -xvf rabbit_hole.tar
+[AWS_SECRET_REMOVED]0942976792918b51912d90f7/
+[AWS_SECRET_REMOVED]0942976792918b51912d90f7/VERSION
+[AWS_SECRET_REMOVED]0942976792918b51912d90f7/json
+[AWS_SECRET_REMOVED]0942976792918b51912d90f7/layer.tar
+[AWS_SECRET_REMOVED]6174e465a956c01137381f96/
+[AWS_SECRET_REMOVED]6174e465a956c01137381f96/VERSION
+[AWS_SECRET_REMOVED]6174e465a956c01137381f96/json
+[AWS_SECRET_REMOVED]6174e465a956c01137381f96/layer.tar
+[AWS_SECRET_REMOVED]4a10aee4ea9d05220737d119.json
+[AWS_SECRET_REMOVED]3a22c6d8d88a12fd449ccd77/
+[AWS_SECRET_REMOVED]3a22c6d8d88a12fd449ccd77/VERSION
+[AWS_SECRET_REMOVED]3a22c6d8d88a12fd449ccd77/json
+[AWS_SECRET_REMOVED]3a22c6d8d88a12fd449ccd77/layer.tar
+[AWS_SECRET_REMOVED]8d9b95111ded28ff6058fab0/
+[AWS_SECRET_REMOVED]8d9b95111ded28ff6058fab0/VERSION
+[AWS_SECRET_REMOVED]8d9b95111ded28ff6058fab0/json
+[AWS_SECRET_REMOVED]8d9b95111ded28ff6058fab0/layer.tar
+manifest.json
+repositories
+```
+
+One of the layers will contain the file:
+
+```console
+┌──(user@kali)-[/media/sf_CTFs/intent/Cant_see_you]
+└─$ find . -name "layer.tar" -exec bash -c "echo {} && tar -tvf {} | grep Wonderland" \;
+.[AWS_SECRET_REMOVED]a0942976792918b51912d90f7/layer.tar
+.[AWS_SECRET_REMOVED]06174e465a956c01137381f96/layer.tar
+-rw-rw-r-- 0/0         6163456 2022-09-14 15:02 tmp/Wonderland
+.[AWS_SECRET_REMOVED]73a22c6d8d88a12fd449ccd77/layer.tar
+-rw------- 0/0               0 2022-09-14 15:02 tmp/.wh.Wonderland
+.[AWS_SECRET_REMOVED]28d9b95111ded28ff6058fab0/layer.tar
+```
+
+Let's extract it:
+
+```console
+┌──(user@kali)-[/media/sf_CTFs/intent/Cant_see_you]
+└─$ tar -xvf .[AWS_SECRET_REMOVED]06174e465a956c01137381f96/layer.tar tmp/Wonderland
+tmp/Wonderland
+
+┌──(user@kali)-[/media/sf_CTFs/intent/Cant_see_you]
+└─$ file tmp/Wonderland
+tmp/Wonderland: POSIX tar archive
+```
+
+It's another `tar` file. In we go.
+
+```console
+┌──(user@kali)-[/media/sf_CTFs/intent/Cant_see_you/tmp]
+└─$ tar -xvf Wonderland
+[AWS_SECRET_REMOVED]2e16ee09830ee1ccbca7c7fe/
+[AWS_SECRET_REMOVED]2e16ee09830ee1ccbca7c7fe/VERSION
+[AWS_SECRET_REMOVED]2e16ee09830ee1ccbca7c7fe/json
+[AWS_SECRET_REMOVED]2e16ee09830ee1ccbca7c7fe/layer.tar
+[AWS_SECRET_REMOVED]2857e7da4fa36d80b8ad607c/
+[AWS_SECRET_REMOVED]2857e7da4fa36d80b8ad607c/VERSION
+[AWS_SECRET_REMOVED]2857e7da4fa36d80b8ad607c/json
+[AWS_SECRET_REMOVED]2857e7da4fa36d80b8ad607c/layer.tar
+...
+[AWS_SECRET_REMOVED]2c140fc1a380e6012cb68b1c/
+[AWS_SECRET_REMOVED]2c140fc1a380e6012cb68b1c/VERSION
+[AWS_SECRET_REMOVED]2c140fc1a380e6012cb68b1c/json
+[AWS_SECRET_REMOVED]2c140fc1a380e6012cb68b1c/layer.tar
+[AWS_SECRET_REMOVED]d0d196c6da09ff68f535ccf3/
+[AWS_SECRET_REMOVED]d0d196c6da09ff68f535ccf3/VERSION
+[AWS_SECRET_REMOVED]d0d196c6da09ff68f535ccf3/json
+[AWS_SECRET_REMOVED]d0d196c6da09ff68f535ccf3/layer.tar
+manifest.json
+repositories
+```
+
+More layers. Most of them just have a file called `door`:
+
+```console
+┌──(user@kali)-[/media/sf_CTFs/intent/Cant_see_you/tmp]
+└─$ find . -name "*.tar" -exec bash -c "echo {} && tar -tvf {}" \; | tail
+.[AWS_SECRET_REMOVED]e9a534a58e8fc9c9a35733e3f/layer.tar
+-rw-r--r-- 0/0               2 2022-09-14 15:00 door
+.[AWS_SECRET_REMOVED]6c7ffcd2d3e2db55167aab69f/layer.tar
+-rw-r--r-- 0/0               2 2022-09-14 14:59 door
+.[AWS_SECRET_REMOVED]405f11a115299611d1720365d/layer.tar
+-rw-r--r-- 0/0               2 2022-09-14 14:59 door
+.[AWS_SECRET_REMOVED]a2c140fc1a380e6012cb68b1c/layer.tar
+-rw-r--r-- 0/0               2 2022-09-14 14:59 door
+.[AWS_SECRET_REMOVED]1d0d196c6da09ff68f535ccf3/layer.tar
+-rw-r--r-- 0/0               2 2022-09-14 15:00 door
+```
+
+Let's take a look at a few:
+
+```console
+┌──(user@kali)-[/media/sf_CTFs/intent/Cant_see_you/tmp]
+└─$ tar -xvf .[AWS_SECRET_REMOVED]1d0d196c6da09ff68f535ccf3/layer.tar
+door
+
+┌──(user@kali)-[/media/sf_CTFs/intent/Cant_see_you/tmp]
+└─$ cat door
+z
+
+┌──(user@kali)-[/media/sf_CTFs/intent/Cant_see_you/tmp]
+└─$ tar -xvf .[AWS_SECRET_REMOVED]a2c140fc1a380e6012cb68b1c/layer.tar
+door
+
+┌──(user@kali)-[/media/sf_CTFs/intent/Cant_see_you/tmp]
+└─$ cat door
+5
+```
+
+Random characters. So let's extract them all and try to piece together a message. We'll follow the order from `manifest.json`.
+
+```python
+import json
+import tarfile
+from pathlib import Path
+
+BASE_PATH = Path("tmp")
+DOOR_FILE = "door"
+
+output = b""
+
+with open(BASE_PATH / "manifest.json") as manifest_file:
+    manifest = json.load(manifest_file)[0]
+    
+    for layer in manifest["Layers"]:
+        with tarfile.open(BASE_PATH / layer) as tar:
+            if DOOR_FILE in tar.getnames():
+                door = tar.extractfile(DOOR_FILE)
+                output += door.read().strip()
+
+print(output)
+```
+
+Output:
+
+```console
+┌──(user@kali)-[/media/sf_CTFs/intent/Cant_see_you]
+└─$ python3 solve.py
+b'[AWS_SECRET_REMOVED]X2FfbDE3N2wzX2QwMHJ9'
+```
+
+That looks like base64. We add `print(base64.b64decode(output).decode())` to the script in order to get the flag:
+
+```console
+┌──(user@kali)-[/media/sf_CTFs/intent/Cant_see_you]
+└─$ python3 solve.py
+b'[AWS_SECRET_REMOVED]X2FfbDE3N2wzX2QwMHJ9'
+INTENT{a_l177l3_g0ld3n_k3y_f0r_a_l177l3_d00r}
+```
