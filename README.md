@@ -1,1 +1,1 @@
-# Hack The Box Labs
+# Writeups
